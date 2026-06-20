@@ -46,6 +46,12 @@ describe('Google login handler (mocked verifier)', () => {
     expect(res.status).toBe(401);
   });
 
+  it('exposes the Google client id via /api/config', async () => {
+    const res = await request(ctx.app).get('/api/config');
+    expect(res.status).toBe(200);
+    expect(res.body.googleClientId).toBe(process.env.GOOGLE_CLIENT_ID ?? null);
+  });
+
   it('logout clears the session', async () => {
     const agent = request.agent(ctx.app);
     await agent.post('/api/auth/google').send({ credential: 'good' });

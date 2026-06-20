@@ -38,6 +38,11 @@ export function createApp(db: Knex, opts: CreateAppOptions = {}): Express {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+  // Public runtime config for the SPA (the Google client id is public — it's
+  // embedded in the page either way). Lets the client read it at runtime instead
+  // of baking a build-time VITE_ var, so dev/prod differ by one server env var.
+  app.get('/api/config', (_req, res) => res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID ?? null }));
+
   // Resolve caller (cookie / PAT) for every API route.
   app.use('/api', resolveAuth);
 

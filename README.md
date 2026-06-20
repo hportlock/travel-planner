@@ -40,8 +40,10 @@ npm test                     # Jest + Supertest on in-memory SQLite
 ### Environment
 
 Copy `.env.example` → `.env`. Key vars: `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `APP_BASE_URL`,
-`PORT`, and (prod only) `DATABASE_URL` (injected by the Dokku postgres plugin). The client needs
-`VITE_GOOGLE_CLIENT_ID` to enable Google sign-in.
+`PORT`, and (prod only) `DATABASE_URL` (injected by the Dokku postgres plugin). The client reads the
+Google client id at runtime from `GET /api/config` (served from `GOOGLE_CLIENT_ID`), so there's no
+build-time client var — set `GOOGLE_CLIENT_ID` once per environment (root `.env` in dev,
+`dokku config:set` in prod).
 
 ## Dev container (local)
 

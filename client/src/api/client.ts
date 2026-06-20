@@ -64,6 +64,12 @@ export interface ShareResponse {
   token: string;
 }
 
+export interface AppConfig {
+  googleClientId: string | null;
+}
+
+export const getConfig = () => api.get<AppConfig>('/api/config');
+
 export const getShared = (token: string) => api.get<TripDetail>(`/api/shared/${encodeURIComponent(token)}`);
 export const getTrip = (id: string) => api.get<TripDetail>(`/api/trips/${encodeURIComponent(id)}`);
 export const listTrips = () => api.get<TripRow[]>('/api/trips');

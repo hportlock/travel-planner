@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { googleLogin } from '../api/client';
+import { googleLogin, getConfig } from '../api/client';
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -20,17 +20,27 @@ declare global {
   }
 }
 
-const CLIENT_ID =
-  (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
+  // Fetch the Google client id from the server at runtime (no build-time var).
   useEffect(() => {
+    getConfig()
+      .then((c) => setClientId(c.googleClientId))
+      .catch(() => setClientId(null))
+      .finally(() => setConfigLoaded(true));
+  }, []);
+
+  // Once we have a client id, load the Google script and render the button.
+  useEffect(() => {
+    if (!clientId) return;
+
     const handleCredential = (resp: GoogleCredentialResponse) => {
       if (!resp.credential) {
         setError('No credential returned from Google.');
@@ -44,7 +54,7 @@ export default function Login(): JSX.Element {
     const init = () => {
       const gid = window.google?.accounts.id;
       if (!gid || !buttonRef.current) return;
-      gid.initialize({ client_id: CLIENT_ID, callback: handleCredential });
+      gid.initialize({ client_id: clientId, callback: handleCredential });
       gid.renderButton(buttonRef.current, { theme: 'outline', size: 'large', shape: 'pill' });
     };
 
@@ -63,7 +73,7 @@ export default function Login(): JSX.Element {
     }
     script.addEventListener('load', init);
     return () => script.removeEventListener('load', init);
-  }, [navigate]);
+  }, [clientId, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
@@ -77,10 +87,12 @@ export default function Login(): JSX.Element {
 
       {error ? <p className="mt-4 font-semibold text-ember">{error}</p> : null}
 
-      <p className="mt-6 max-w-[400px] text-center text-[12.5px] font-semibold text-[#8a6f4c]">
-        Note: set <code className="font-mono">VITE_GOOGLE_CLIENT_ID</code> in the client environment to enable
-        Google sign-in. The current build uses a placeholder client id.
-      </p>
+      {configLoaded && !clientId ? (
+        <p className="mt-6 max-w-[400px] text-center text-[12.5px] font-semibold text-[#8a6f4c]">
+          Google sign-in isn’t configured. Set <code className="font-mono">GOOGLE_CLIENT_ID</code> on the server
+          (root <code className="font-mono">.env</code> in dev, or <code className="font-mono">dokku config:set</code> in prod).
+        </p>
+      ) : null}
     </div>
   );
 }

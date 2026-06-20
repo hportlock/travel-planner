@@ -58,5 +58,7 @@ under `public/` — see `public/README.txt`.
 
 ## Configuration
 
-- `VITE_GOOGLE_CLIENT_ID` — Google OAuth client id for sign-in. Falls back to a
-  placeholder; sign-in will not work until this is set.
+- The Google OAuth client id for sign-in is fetched at **runtime** from `GET /api/config`
+  (the server serves it from its `GOOGLE_CLIENT_ID` env var) — there is no build-time
+  `VITE_` var. If the server has no `GOOGLE_CLIENT_ID`, the login page shows a hint and
+  sign-in is disabled.
