@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Dev-container dispatcher for travel-plan (CLI-first; no VS Code needed).
+#
+#   ./dc build    build the dev image
+#   ./dc login    one-time: open Claude in the container, run /login (persisted in a volume)
+#   ./dc shell    interactive bash in the container (npm install first)
+#   ./dc test     npm test (real supertest — sockets work in the container)
+#   ./dc reset    npm run db:reset (wipe + migrate + seed; regenerates the share token)
+#   ./dc dev      npm run dev — start the servers WITHOUT touching the DB (open http://localhost:5173)
+#   ./dc agent    headless autonomous Claude run; export GOAL='/goal ...' first
+#
+# First time (or for fresh data): ./dc reset once, then ./dc dev.
+#
+# Notes: node_modules + ~/.claude live in named volumes (Linux build kept separate
+# from the host macOS build; login persists). Ports 3001/5173 publish to the host,
+# so run `dev` OR `agent`, not both at once. Dev/agent only — prod is Dokku.
+set -euo pipefail
+
+IMG=travel-dev
+COMMON=(
+  --rm
+  -v "$PWD":/work
+  -v travel-node-modules:/work/node_modules
+  -v travel-claude-home:/home/node/.claude
+  -p 3001:3001 -p 5173:5173
+  -w /work
+)
+
+# Named volumes are created root-owned; fix ownership for the node user (no-op once done).
+PREP='sudo chown node:node /work/node_modules /home/node/.claude 2>/dev/null || true'
+
+build() { docker build -t "$IMG" -f .devcontainer/Dockerfile .devcontainer; }
+ensure() { docker image inspect "$IMG" >/dev/null 2>&1 || build; }
+
+case "${1:-shell}" in
+  build) build ;;
+  login) ensure; docker run -it "${COMMON[@]}" "$IMG" bash -lc "$PREP; exec claude" ;;
+  shell) ensure; docker run -it "${COMMON[@]}" "$IMG" bash -lc "$PREP; npm install; exec bash" ;;
+  test)  ensure; docker run -it "${COMMON[@]}" "$IMG" bash -lc "$PREP; npm install && npm test" ;;
+  reset) ensure; docker run -it "${COMMON[@]}" "$IMG" bash -lc "$PREP; npm install && npm run db:reset" ;;
+  dev)   ensure; docker run -it "${COMMON[@]}" "$IMG" bash -lc "$PREP; npm install && npm run dev" ;;
+  agent)
+    : "${GOAL:?export GOAL first (the /goal prompt)}"
+    ensure
+    docker run -it -e GOAL "${COMMON[@]}" "$IMG" \
+      bash -lc "$PREP; npm install && claude --dangerously-skip-permissions --verbose -p \"\$GOAL\""
+    ;;
+  *) echo "usage: ./dc {build|login|shell|test|reset|dev|agent}" >&2; exit 1 ;;
+esac

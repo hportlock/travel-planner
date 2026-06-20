@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default token fallbacks so the app renders before a theme loads. */
+:root {
+  --coral: #ff8a5b;
+  --ocean: #11b0a6;
+  --bg: #fbf1dd;
+  --ink: #33271c;
+  --pink: #ff5e9c;
+  --gold: #ffb23e;
+  --ember: #e5572c;
+  --sunset: linear-gradient(118deg, #ffb35c 0%, #ff7e64 26%, #ff5e9c 60%, #9b6fe0 100%);
+  --radius: 18px;
+  --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(180, 140, 90, 0.16) 1.4px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* The scope wrapper used by ThemeProvider. custom_css is rescoped under this. */
+.tp-root {
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.tp-root [data-density='compact'] {
+  font-size: 0.94rem;
+}

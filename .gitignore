@@ -1,0 +1,14 @@
+node_modules/
+.npm-cache/
+.localnode/
+dist/
+*.tsbuildinfo
+dev.sqlite3
+*.sqlite3
+.env
+.env.local
+client/dev-dist/
+coverage/
+.DS_Store
+npm-debug.log*
+.probe.txt

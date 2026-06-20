@@ -1,0 +1,15 @@
+{
+  // OPTIONAL — only used by VS Code/Cursor "Reopen in Container" or @devcontainers/cli.
+  // The CLI workflow (../dc.sh) does NOT need this file.
+  "name": "travel-plan",
+  "build": { "dockerfile": "Dockerfile" },
+  "workspaceFolder": "/work",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind",
+  "remoteUser": "node",
+  "forwardPorts": [3001, 5173],
+  "mounts": [
+    "source=travel-node-modules,target=/work/node_modules,type=volume",
+    "source=travel-claude-home,target=/home/node/.claude,type=volume"
+  ],
+  "postCreateCommand": "sudo chown -R node:node /work/node_modules /home/node/.claude && npm install"
+}
