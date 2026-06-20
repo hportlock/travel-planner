@@ -1,0 +1,16 @@
+{
+  // Compiles the root knexfile + migrations to plain CommonJS JS in dist-migrate/
+  // so production can run `knex migrate:latest` without a TypeScript loader
+  // (prod omits ts-node). Output: dist-migrate/knexfile.js + dist-migrate/migrations/*.js.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist-migrate",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "composite": false,
+    "incremental": false
+  },
+  "include": ["knexfile.ts", "migrations/**/*.ts"]
+}

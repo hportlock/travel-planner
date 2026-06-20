@@ -13,15 +13,16 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run build:shared && npm run build:server && npm run build:client",
+    "build": "npm run build:shared && npm run build:server && npm run build:client && npm run build:migrate",
     "build:shared": "npm run build --workspace @travel-plan/shared",
     "build:server": "npm run build --workspace @travel-plan/server",
     "build:client": "npm run build --workspace @travel-plan/client",
+    "build:migrate": "tsc -p tsconfig.migrate.json",
     "dev": "npm run build:shared && concurrently -k -n server,client -c blue,magenta \"npm run dev --workspace @travel-plan/server\" \"npm run dev --workspace @travel-plan/client\"",
     "dev:server": "npm run build:shared && npm run dev --workspace @travel-plan/server",
     "migrate:latest": "knex --knexfile knexfile.ts migrate:latest",
     "migrate:rollback": "knex --knexfile knexfile.ts migrate:rollback",
-    "migrate:prod": "knex --knexfile knexfile.ts migrate:latest --env production",
+    "migrate:prod": "knex --knexfile dist-migrate/knexfile.js migrate:latest --env production",
     "seed:run": "knex --knexfile knexfile.ts seed:run",
     "db:reset": "rimraf dev.sqlite3 && npm run migrate:latest && npm run seed:run",
     "test": "jest --runInBand",

@@ -1,6 +1,9 @@
 **/node_modules
 **/dist
-**/.tsbuildinfo
+dist-migrate/
+.npm-cache/
+.localnode/
+**/*.tsbuildinfo
 *.sqlite3
 dev.sqlite3
 .git
