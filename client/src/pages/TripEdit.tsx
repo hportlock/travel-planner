@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type {
+  DayItemRow,
   DayWithItems,
   EventWithReviews,
   ItineraryWithDays,
   LayoutConfig,
+  TimeOfDay,
   TripDetail,
 } from '@travel-plan/shared';
-import { DAY_STYLES } from '@travel-plan/shared';
+import { DAY_STYLES, TIME_OF_DAY } from '@travel-plan/shared';
 import { ApiError, api, createShare, getTrip } from '../api/client';
 import { CenterMessage, TripBody } from './ShareView';
 
@@ -304,10 +306,11 @@ function DayEditor({
         {day.items.map((item, idx) => {
           const ev = events.find((e) => e.id === item.event_id);
           return (
-            <li key={item.id} className="flex items-center gap-2 text-[13px]">
+            <li key={item.id} className="flex flex-wrap items-center gap-2 text-[13px]">
               <span className="flex-1 truncate font-semibold text-ink">
                 {ev?.emoji} {ev?.name ?? item.event_id}
               </span>
+              <ItemTimeControl item={item} busy={busy} run={run} />
               <button
                 type="button"
                 disabled={busy || idx === 0}
@@ -365,6 +368,102 @@ function DayEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+const capitalize = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+type TimeMode = 'untimed' | TimeOfDay | 'specific';
+
+/**
+ * Per-item time editor. The data model allows exactly one of: a precise
+ * start_time (with optional end_time), a time_of_day bucket, or neither.
+ * Each change PATCHes all three fields at once (nulling the unused ones) so
+ * that invariant always holds; the reload in `run()` re-sorts the timeline.
+ */
+function ItemTimeControl({
+  item,
+  busy,
+  run,
+}: {
+  item: DayItemRow;
+  busy: boolean;
+  run: (fn: () => Promise<unknown>) => Promise<void>;
+}): JSX.Element {
+  const initialMode: TimeMode = item.start_time ? 'specific' : item.time_of_day ?? 'untimed';
+  const [mode, setMode] = useState<TimeMode>(initialMode);
+  const [start, setStart] = useState(item.start_time ?? '');
+  const [end, setEnd] = useState(item.end_time ?? '');
+
+  const patch = (body: Record<string, unknown>) =>
+    void run(() => api.patch(`/api/day-items/${item.id}`, body));
+
+  const onModeChange = (next: TimeMode) => {
+    setMode(next);
+    if (next === 'specific') {
+      // Wait for a valid start_time before persisting; keep any existing one.
+      return;
+    }
+    setStart('');
+    setEnd('');
+    if (next === 'untimed') {
+      patch({ start_time: null, end_time: null, time_of_day: null });
+    } else {
+      patch({ time_of_day: next, start_time: null, end_time: null });
+    }
+  };
+
+  // end_time requires start_time, so only commit once a start is present.
+  const commitSpecific = (nextStart: string, nextEnd: string) => {
+    if (!nextStart) return;
+    patch({ start_time: nextStart, end_time: nextEnd || null, time_of_day: null });
+  };
+
+  return (
+    <>
+      <select
+        value={mode}
+        disabled={busy}
+        onChange={(e) => onModeChange(e.target.value as TimeMode)}
+        className="rounded border border-[#e7d6ba] bg-white px-1.5 py-0.5 text-[12px] disabled:opacity-50"
+        aria-label="Item time"
+      >
+        <option value="untimed">Untimed</option>
+        {TIME_OF_DAY.map((b) => (
+          <option key={b} value={b}>
+            {capitalize(b)}
+          </option>
+        ))}
+        <option value="specific">Specific time…</option>
+      </select>
+
+      {mode === 'specific' ? (
+        <>
+          <input
+            type="time"
+            value={start}
+            disabled={busy}
+            onChange={(e) => {
+              setStart(e.target.value);
+              commitSpecific(e.target.value, end);
+            }}
+            className="rounded border border-[#e7d6ba] bg-white px-1 py-0.5 text-[12px] disabled:opacity-50"
+            aria-label="Start time"
+          />
+          <input
+            type="time"
+            value={end}
+            disabled={busy || !start}
+            onChange={(e) => {
+              setEnd(e.target.value);
+              commitSpecific(start, e.target.value);
+            }}
+            className="rounded border border-[#e7d6ba] bg-white px-1 py-0.5 text-[12px] disabled:opacity-30"
+            aria-label="End time"
+          />
+        </>
+      ) : null}
+    </>
   );
 }
 

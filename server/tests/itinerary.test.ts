@@ -57,6 +57,61 @@ describe('day_items reorder', () => {
   });
 });
 
+describe('day_item time editing', () => {
+  it('switches between bucket, specific time, and untimed, clearing the others', async () => {
+    const { tripId, itineraryId } = await createTrip(ctx.db, alice.id, { title: 'Times' });
+    const e1 = await createEvent(ctx.db, tripId, { slug: 't1' });
+    const d = await request(ctx.app).post(`/api/itineraries/${itineraryId}/days`).set('Cookie', cookieA()).send({});
+    const item = (
+      await request(ctx.app).post(`/api/days/${d.body.id}/items`).set('Cookie', cookieA()).send({ event_id: e1 })
+    ).body;
+
+    // -> bucket
+    let r = await request(ctx.app)
+      .patch(`/api/day-items/${item.id}`)
+      .set('Cookie', cookieA())
+      .send({ time_of_day: 'morning', start_time: null, end_time: null });
+    expect(r.status).toBe(200);
+    expect(r.body.time_of_day).toBe('morning');
+    expect(r.body.start_time).toBeNull();
+    expect(r.body.end_time).toBeNull();
+
+    // -> specific time (clears bucket)
+    r = await request(ctx.app)
+      .patch(`/api/day-items/${item.id}`)
+      .set('Cookie', cookieA())
+      .send({ start_time: '09:30', end_time: '11:00', time_of_day: null });
+    expect(r.status).toBe(200);
+    expect(r.body.start_time).toBe('09:30');
+    expect(r.body.end_time).toBe('11:00');
+    expect(r.body.time_of_day).toBeNull();
+
+    // -> untimed (clears all)
+    r = await request(ctx.app)
+      .patch(`/api/day-items/${item.id}`)
+      .set('Cookie', cookieA())
+      .send({ start_time: null, end_time: null, time_of_day: null });
+    expect(r.status).toBe(200);
+    expect(r.body.start_time).toBeNull();
+    expect(r.body.end_time).toBeNull();
+    expect(r.body.time_of_day).toBeNull();
+  });
+
+  it('rejects end_time without start_time', async () => {
+    const { tripId, itineraryId } = await createTrip(ctx.db, alice.id, { title: 'BadTime' });
+    const e1 = await createEvent(ctx.db, tripId, { slug: 'bt1' });
+    const d = await request(ctx.app).post(`/api/itineraries/${itineraryId}/days`).set('Cookie', cookieA()).send({});
+    const item = (
+      await request(ctx.app).post(`/api/days/${d.body.id}/items`).set('Cookie', cookieA()).send({ event_id: e1 })
+    ).body;
+    const r = await request(ctx.app)
+      .patch(`/api/day-items/${item.id}`)
+      .set('Cookie', cookieA())
+      .send({ start_time: null, end_time: '11:00' });
+    expect(r.status).toBe(400);
+  });
+});
+
 describe('itinerary active invariant', () => {
   it('keeps exactly one active itinerary after activate', async () => {
     const { tripId } = await createTrip(ctx.db, alice.id, { title: 'Variants' });
