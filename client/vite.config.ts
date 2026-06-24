@@ -22,9 +22,15 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
+            // NetworkFirst (not StaleWhileRevalidate): owners edit these reads and
+            // re-fetch right after a mutation, so they must get the fresh response
+            // immediately when online. StaleWhileRevalidate served the previous
+            // (stale) copy and only refreshed the cache for the *next* request,
+            // making reorders/additions appear one reload late. We still fall back
+            // to the cache when offline for PWA support.
             urlPattern: ({ url }) =>
               url.pathname.startsWith('/api/shared/') || url.pathname.startsWith('/api/trips/'),
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             method: 'GET',
             options: { cacheName: 'trip-reads' },
           },
