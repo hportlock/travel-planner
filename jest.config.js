@@ -6,6 +6,10 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^@travel-plan/shared$': '<rootDir>/shared/src/index.ts',
+    '^@travel-plan/mcp$': '<rootDir>/mcp/src/lib.ts',
+    // The mcp package uses NodeNext `.js` extensions on its relative imports;
+    // strip them so ts-jest resolves the `.ts` source under test.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],

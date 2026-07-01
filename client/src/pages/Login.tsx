@@ -22,6 +22,23 @@ declare global {
 
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
+/**
+ * Validates a `returnTo` redirect target. Allows a relative path or an
+ * absolute URL on the current origin only (the OAuth /authorize endpoint is
+ * same-origin as the SPA in production); rejects anything else to avoid an
+ * open redirect.
+ */
+function safeReturnTo(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return null;
+  }
+}
+
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const buttonRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +64,16 @@ export default function Login(): JSX.Element {
         return;
       }
       googleLogin(resp.credential)
-        .then(() => navigate('/'))
+        .then(() => {
+          // Honor ?returnTo — used by the MCP OAuth /authorize flow, which
+          // bounces unauthenticated users here and expects a redirect back to
+          // the (server-side) authorize URL once a session exists. Only allow
+          // safe absolute-path or same-origin targets.
+          const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+          const dest = safeReturnTo(returnTo);
+          if (dest) window.location.assign(dest);
+          else navigate('/');
+        })
         .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Sign-in failed'));
     };
 

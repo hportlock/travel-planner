@@ -140,12 +140,28 @@ enums, so a design agent knows exactly what it can target.
 
 ## MCP server
 
-`npm run mcp` starts the stdio server (env `TRAVEL_API_URL` + `TRAVEL_PAT`). Tools are
-transport-agnostic pure `(input) → REST call` functions validated by the shared zod schemas:
-`get_trip`, `list_trips`, `create_trip`, `update_trip`, lodging/event/review CRUD,
+Tools are transport-agnostic pure `(client, input) → REST call` functions validated by the shared
+zod schemas: `get_trip`, `list_trips`, `create_trip`, `update_trip`, lodging/event/review CRUD,
 `create_itinerary`/`duplicate_itinerary`/`update_itinerary`/`activate_itinerary`, day/day-item CRUD,
 `reorder_day`, `set_theme`/`set_layout`/`set_custom_css`/`list_themes`/`activate_theme`,
-`get_theming_api`, `create_share_link`.
+`get_theming_api`, `create_share_link`. `mcp/src/server.ts` (`createMcpServer`) wires them to a
+`RestClientLike`; both transports below reuse it.
+
+**Local (stdio).** `npm run mcp` starts the stdio server (env `TRAVEL_API_URL` + `TRAVEL_PAT`) — for
+launching from a local Claude client that spawns the process.
+
+**Remote (HTTP + OAuth), for claude.ai.** The Express app also serves the same tools at `POST /mcp`
+(Streamable HTTP, stateless JSON), guarded by an OAuth 2.1 authorization server mounted at the app
+root (`mcpAuthRouter`: `/authorize`, `/token`, `/register`, `/revoke`, and the `.well-known`
+discovery metadata). Identity is delegated to the existing Google login — `/authorize` requires a
+`tp_session` cookie, bouncing unauthenticated users through the SPA login (`?returnTo`). Access
+tokens are self-contained JWTs (signed with `MCP_TOKEN_SECRET`, falling back to `SESSION_SECRET`);
+refresh tokens are stored hashed. A tool call runs as the token's user via an in-process loopback
+REST client (a minted session JWT), so it flows through the same routes, `requireOwner`, and
+trip-scoping. Connect from claude.ai → **Add custom connector** → `https://<domain>/mcp`; Claude
+does dynamic client registration + the OAuth redirect (you approve via Google) and the tools appear.
+In dev the API (3001) and SPA (5173) differ, so set `MCP_PUBLIC_URL=http://localhost:3001` to test
+the remote endpoint locally (e.g. with `npx @modelcontextprotocol/inspector`).
 
 ## PWA / offline
 

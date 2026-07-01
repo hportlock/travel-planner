@@ -2,7 +2,8 @@
   "name": "@travel-plan/mcp",
   "version": "1.0.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
   "scripts": {
     "build": "tsc -b",
     "start": "node dist/index.js",
