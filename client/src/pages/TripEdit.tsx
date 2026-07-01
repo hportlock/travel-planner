@@ -136,6 +136,9 @@ function EditorPanel({ trip, busy, error, shareUrl, onShare, run }: EditorPanelP
         </button>
       </fieldset>
 
+      {/* Itineraries */}
+      <ItineraryList itineraries={trip.itineraries} busy={busy} run={run} />
+
       {/* Add event */}
       <AddEventForm trip={trip} busy={busy} run={run} />
 
@@ -235,6 +238,56 @@ function AddEventForm({
       >
         Add activity
       </button>
+    </fieldset>
+  );
+}
+
+function ItineraryList({
+  itineraries,
+  busy,
+  run,
+}: {
+  itineraries: ItineraryWithDays[];
+  busy: boolean;
+  run: (fn: () => Promise<unknown>) => Promise<void>;
+}): JSX.Element {
+  const remove = (it: ItineraryWithDays) => {
+    if (!window.confirm(`Delete the itinerary "${it.name}"? This can't be undone.`)) return;
+    void run(() => api.del(`/api/itineraries/${it.id}`));
+  };
+
+  return (
+    <fieldset className="mb-4 border-t border-dashed border-[#e7d6ba] pt-3">
+      <legend className="font-display text-[13px] font-extrabold uppercase tracking-wide text-[#8a6f4c]">
+        Itineraries
+      </legend>
+      <ul className="mt-2 flex flex-col gap-1">
+        {itineraries.map((it) => (
+          <li
+            key={it.id}
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e7d6ba] bg-white px-3 py-2 text-[13px]"
+          >
+            <span className="flex-1 truncate font-semibold text-ink">
+              {it.name}
+              {it.vibe ? <span className="ml-1 font-normal text-[#9a7f5c]">· {it.vibe}</span> : null}
+            </span>
+            {it.is_active ? (
+              <span className="rounded-full bg-[#dff3e6] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-[#1f7a47]">
+                Active
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => remove(it)}
+                className="rounded-full border-2 border-ember bg-white px-3 py-1 text-[12px] font-extrabold text-ember disabled:opacity-50"
+              >
+                Delete
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </fieldset>
   );
 }
