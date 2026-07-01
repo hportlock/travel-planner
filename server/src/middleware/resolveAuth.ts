@@ -32,6 +32,14 @@ export async function resolveAuth(req: Request, _res: Response, next: NextFuncti
           req.auth = { userId: row.user_id, role: 'owner' };
           return next();
         }
+      } else {
+        // (c) session JWT as a bearer — used by the in-process MCP client, which
+        // calls the REST API over loopback on behalf of an authenticated user.
+        const jwtUid = verifySession(token);
+        if (jwtUid) {
+          req.auth = { userId: jwtUid, role: 'owner' };
+          return next();
+        }
       }
     }
 

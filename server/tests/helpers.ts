@@ -6,6 +6,7 @@ import { createApp } from '../src/app';
 import { signSession } from '../src/auth/session';
 import { generatePat } from '../src/auth/pat';
 import { up as migrate001 } from '../../migrations/001_initial';
+import { up as migrate002 } from '../../migrations/002_mcp_oauth';
 
 export interface TestCtx {
   app: Express;
@@ -15,7 +16,9 @@ export interface TestCtx {
 /** Fresh in-memory SQLite, migrated, with the app wired to it. One per suite. */
 export async function makeTestApp(): Promise<TestCtx> {
   const db = makeKnex('test');
-  await migrate001(db); // mirrors `knex migrate:latest` on a fresh :memory: db
+  // mirrors `knex migrate:latest` on a fresh :memory: db
+  await migrate001(db);
+  await migrate002(db);
   const app = createApp(db);
   return { app, db };
 }

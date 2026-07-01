@@ -12,13 +12,13 @@
     "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
-      "@travel-plan/shared": ["shared/src/index.ts"]
+      "@travel-plan/shared": ["shared/src/index.ts"],
+      "@travel-plan/mcp": ["mcp/src/lib.ts"]
     }
   },
   "include": [
     "server/**/*.ts",
-    "mcp/src/tools.ts",
-    "mcp/src/client.ts",
+    "mcp/src/**/*.ts",
     "mcp/tests/**/*.ts",
     "shared/src/**/*.ts",
     "migrations/**/*.ts"

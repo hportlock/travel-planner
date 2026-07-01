@@ -14,6 +14,7 @@ import { eventsRouter } from './routes/events';
 import { itinerariesRouter } from './routes/itineraries';
 import { themesRouter } from './routes/themes';
 import { sharedRouter } from './routes/shared';
+import { mountMcp } from './mcp/httpRoute';
 
 export interface CreateAppOptions {
   /** In prod, serve the built client (client/dist) + SPA fallback. */
@@ -34,6 +35,26 @@ export function createApp(db: Knex, opts: CreateAppOptions = {}): Express {
   app.use(cookieParser());
   if (process.env.NODE_ENV !== 'production') {
     app.use(cors({ origin: true, credentials: true }));
+  }
+
+  // Cross-origin access for the remote MCP + OAuth endpoints (called by
+  // claude.ai). Enabled in all environments — these are bearer-protected or
+  // public discovery metadata, so no cookies/credentials are involved.
+  const mcpCors = cors({
+    origin: true,
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Mcp-Session-Id', 'MCP-Protocol-Version', 'Last-Event-ID'],
+    exposedHeaders: ['WWW-Authenticate', 'Mcp-Session-Id', 'MCP-Protocol-Version'],
+  });
+  for (const p of [
+    '/mcp',
+    '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-authorization-server',
+    '/register',
+    '/token',
+    '/revoke',
+  ]) {
+    app.use(p, mcpCors);
   }
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -58,6 +79,10 @@ export function createApp(db: Knex, opts: CreateAppOptions = {}): Express {
 
   // Unknown API route -> JSON 404 (before SPA fallback swallows it).
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
+
+  // Remote MCP endpoint + OAuth authorization server. Mounted at root (the SDK
+  // requires the `.well-known` metadata at root) and before the SPA fallback.
+  mountMcp(app, db);
 
   if (opts.serveStatic) {
     const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
