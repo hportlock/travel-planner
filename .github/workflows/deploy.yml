@@ -1,16 +1,24 @@
 name: Deploy to Dokku
 
+# Gate deploys on tests: run only after the "Test" workflow completes on main,
+# and only if it succeeded. (workflow_run uses the workflow definition from the
+# default branch.)
 on:
-  push:
+  workflow_run:
+    workflows: ['Test']
+    types: [completed]
     branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Deploy the exact commit that was tested.
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: dokku/github-action@master
         with:
