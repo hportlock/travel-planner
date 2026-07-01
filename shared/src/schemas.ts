@@ -30,6 +30,19 @@ export const timezone = z
 export const TIME_OF_DAY = ['morning', 'midday', 'afternoon', 'evening', 'night'] as const;
 export const timeOfDay = z.enum(TIME_OF_DAY);
 
+/**
+ * Google Maps link. The .describe() text flows into the MCP tool JSON schemas
+ * (zodToJsonSchema in mcp/src/server.ts), instructing MCP clients to send the
+ * mobile-safe Maps URLs API format.
+ */
+export const gmapUrl = z
+  .string()
+  .optional()
+  .default('')
+  .describe(
+    'Google Maps link. Use the Maps URLs API format: https://www.google.com/maps/search/?api=1&query=<url-encoded place name>&query_place_id=<place id>. Do NOT use https://www.google.com/maps/place/?q=place_id:... — that form fails to resolve in the mobile Google Maps app.',
+  );
+
 /* ============================================================
  * Regions (trips.regions json: { key: { label, color } })
  * ========================================================== */
@@ -73,7 +86,7 @@ export const lodgingCreate = z.object({
   address: z.string().optional().default(''),
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
-  gmap_url: z.string().optional().default(''),
+  gmap_url: gmapUrl,
   check_in: isoDate.nullable().optional(),
   check_out: isoDate.nullable().optional(),
   cost: z.string().optional().default(''),
@@ -92,7 +105,7 @@ export const eventCreate = z.object({
   emoji: z.string().optional().default(''),
   region: z.string().optional().default(''),
   url: z.string().optional().default(''),
-  gmap_url: z.string().optional().default(''),
+  gmap_url: gmapUrl,
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
   drive: z.string().optional().default(''),

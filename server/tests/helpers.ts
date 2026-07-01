@@ -7,6 +7,7 @@ import { signSession } from '../src/auth/session';
 import { generatePat } from '../src/auth/pat';
 import { up as migrate001 } from '../../migrations/001_initial';
 import { up as migrate002 } from '../../migrations/002_mcp_oauth';
+import { up as migrate003 } from '../../migrations/003_fix_gmap_urls';
 
 export interface TestCtx {
   app: Express;
@@ -19,6 +20,7 @@ export async function makeTestApp(): Promise<TestCtx> {
   // mirrors `knex migrate:latest` on a fresh :memory: db
   await migrate001(db);
   await migrate002(db);
+  await migrate003(db);
   const app = createApp(db);
   return { app, db };
 }

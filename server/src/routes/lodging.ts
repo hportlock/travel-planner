@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Knex } from 'knex';
 import { randomUUID } from 'crypto';
-import { lodgingCreate, lodgingUpdate } from '@travel-plan/shared';
+import { lodgingCreate, lodgingUpdate, normalizeGmapUrl } from '@travel-plan/shared';
 import { asyncHandler, notFound } from '../services/http';
 import { requireOwner, tripIdFromParam } from '../middleware/requireOwner';
 import { tripIdOfLodging } from '../services/access';
@@ -37,7 +37,7 @@ export function lodgingRouter(): Router {
         address: input.address,
         lat: input.lat ?? null,
         lng: input.lng ?? null,
-        gmap_url: input.gmap_url,
+        gmap_url: normalizeGmapUrl(input.gmap_url, input.address || input.name),
         check_in: input.check_in ?? null,
         check_out: input.check_out ?? null,
         cost: input.cost,
@@ -63,6 +63,14 @@ export function lodgingRouter(): Router {
         'name', 'address', 'lat', 'lng', 'gmap_url', 'check_in', 'check_out', 'cost', 'notes', 'is_home_base',
       ] as const) {
         if (patch[k] !== undefined) upd[k] = patch[k];
+      }
+      if (patch.gmap_url) {
+        let query = patch.address || patch.name || '';
+        if (!query) {
+          const existing = await db('lodging').where({ id: req.params.id }).first();
+          query = existing?.address || existing?.name || '';
+        }
+        upd.gmap_url = normalizeGmapUrl(patch.gmap_url, query);
       }
       await db('lodging').where({ id: req.params.id }).update(upd);
       const row = await db('lodging').where({ id: req.params.id }).first();

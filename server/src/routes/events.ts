@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Knex } from 'knex';
 import { randomUUID } from 'crypto';
-import { eventCreate, eventUpdate, reviewCreate, reviewUpdate } from '@travel-plan/shared';
+import { eventCreate, eventUpdate, normalizeGmapUrl, reviewCreate, reviewUpdate } from '@travel-plan/shared';
 import { asyncHandler, notFound, badRequest } from '../services/http';
 import { requireOwner, tripIdFromParam } from '../middleware/requireOwner';
 import { tripIdOfEvent, tripIdOfReview } from '../services/access';
@@ -41,7 +41,7 @@ export function eventsRouter(): Router {
         emoji: input.emoji,
         region: input.region,
         url: input.url,
-        gmap_url: input.gmap_url,
+        gmap_url: normalizeGmapUrl(input.gmap_url, input.name),
         lat: input.lat ?? null,
         lng: input.lng ?? null,
         drive: input.drive,
@@ -74,6 +74,10 @@ export function eventsRouter(): Router {
         if (patch[k] !== undefined) upd[k] = patch[k];
       }
       if (patch.tags !== undefined) upd.tags = serializeJson(patch.tags);
+      if (patch.gmap_url) {
+        const name = patch.name ?? (await db('events').where({ id: req.params.id }).first())?.name ?? '';
+        upd.gmap_url = normalizeGmapUrl(patch.gmap_url, name);
+      }
       await db('events').where({ id: req.params.id }).update(upd);
       const row = await db('events').where({ id: req.params.id }).first();
       if (!row) throw notFound();
