@@ -20,6 +20,21 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // The SPA navigation fallback serves index.html for navigations so
+        // client-side routes work offline. Exclude server-handled paths — the
+        // OAuth authorization server, the MCP endpoint, discovery metadata, and
+        // the API — so navigating to them reaches the server instead of the SPA
+        // shell. Without this, an installed service worker answers /authorize
+        // with index.html (which has no such route) → a blank page mid-OAuth.
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/mcp(\/|$)/,
+          /^\/authorize(\/|$)/,
+          /^\/token(\/|$)/,
+          /^\/register(\/|$)/,
+          /^\/revoke(\/|$)/,
+          /^\/\.well-known\//,
+        ],
         runtimeCaching: [
           {
             // NetworkFirst (not StaleWhileRevalidate): owners edit these reads and
