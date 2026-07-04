@@ -11,6 +11,7 @@ import type {
 } from '@travel-plan/shared';
 import { DAY_STYLES, TIME_OF_DAY } from '@travel-plan/shared';
 import { ApiError, api, createShare, getTrip } from '../api/client';
+import OfflineBanner from '../components/OfflineBanner';
 import { CenterMessage, TripBody } from './ShareView';
 
 export default function TripEdit(): JSX.Element {
@@ -78,7 +79,12 @@ export default function TripEdit(): JSX.Element {
     />
   );
 
-  return <TripBody trip={trip} toolbar={toolbar} />;
+  return (
+    <>
+      <OfflineBanner />
+      <TripBody trip={trip} toolbar={toolbar} />
+    </>
+  );
 }
 
 interface EditorPanelProps {
