@@ -165,9 +165,12 @@ the remote endpoint locally (e.g. with `npx @modelcontextprotocol/inspector`).
 
 ## PWA / offline
 
-`vite-plugin-pwa` (autoUpdate): precaches the app shell, **StaleWhileRevalidate** for
-`GET /api/shared/*` and `GET /api/trips/*` reads (instant offline viewing of a shared trip),
-`NetworkOnly` for mutations. (Add real `public/icon-192.png` / `icon-512.png`.)
+`vite-plugin-pwa` (autoUpdate): precaches the app shell, **NetworkFirst** for
+`GET /api/auth/me` (cached session so an offline launch lands on your trips, 3s network
+timeout) and for `GET /api/shared/*` / `GET /api/trips` / `GET /api/trips/*` reads (offline
+viewing of previously-loaded trips), `NetworkOnly` for mutations — offline saves fail fast
+with a clear message. Logout clears the runtime caches. (Add real `public/icon-192.png` /
+`icon-512.png`.)
 
 ## Deploy (Dokku)
 

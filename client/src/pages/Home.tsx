@@ -1,26 +1,40 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { TripRow, UserRow } from '@travel-plan/shared';
-import { listTrips, logout, me } from '../api/client';
+import { NetworkError, listTrips, logout, me } from '../api/client';
+import OfflineBanner from '../components/OfflineBanner';
 
 export default function Home(): JSX.Element {
   const [user, setUser] = useState<UserRow | null>(null);
   const [trips, setTrips] = useState<TripRow[]>([]);
+  const [tripsUnavailable, setTripsUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Server unreachable and the service worker had no cached session — we
+  // can't tell whether the user is logged in, so offer Retry, not Sign in.
+  const [unreachable, setUnreachable] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setUnreachable(false);
+    setTripsUnavailable(false);
     me()
       .then(async (res) => {
         if (!active) return;
         setUser(res.user);
         if (res.user) {
-          const list = await listTrips().catch(() => [] as TripRow[]);
+          const list = await listTrips().catch((e: unknown) => {
+            if (active && e instanceof NetworkError) setTripsUnavailable(true);
+            return [] as TripRow[];
+          });
           if (active) setTrips(list);
         }
       })
-      .catch(() => {
-        if (active) setUser(null);
+      .catch((e: unknown) => {
+        if (!active) return;
+        if (e instanceof NetworkError) setUnreachable(true);
+        else setUser(null);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -28,7 +42,7 @@ export default function Home(): JSX.Element {
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt]);
 
   return (
     <div className="mx-auto max-w-[760px] px-5 py-10">
@@ -38,7 +52,15 @@ export default function Home(): JSX.Element {
           <button
             type="button"
             onClick={() => {
-              void logout().then(() => window.location.reload());
+              // Clear the runtime caches so a logout followed by an offline
+              // launch can't resurrect the previous identity or trip data.
+              void logout()
+                .then(() =>
+                  'caches' in window
+                    ? Promise.allSettled([caches.delete('auth'), caches.delete('trip-reads')])
+                    : undefined,
+                )
+                .then(() => window.location.reload());
             }}
             className="rounded-full border-2 border-[#e7d6ba] bg-white px-4 py-2 text-[13px] font-extrabold text-[#6a553c]"
           >
@@ -47,8 +69,24 @@ export default function Home(): JSX.Element {
         ) : null}
       </header>
 
+      <OfflineBanner />
+
       {loading ? (
         <p className="font-semibold text-[#8a6f4c]">Loading…</p>
+      ) : unreachable ? (
+        <div className="rounded-card border-2 border-[#e7d6ba] bg-white px-6 py-8 text-center">
+          <p className="mb-4 font-semibold text-[#6a553c]">
+            You&rsquo;re offline and no saved data is available on this device. Reconnect and try
+            again.
+          </p>
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="inline-flex rounded-full bg-coral px-5 py-2.5 font-extrabold text-white"
+          >
+            Retry
+          </button>
+        </div>
       ) : !user ? (
         <div className="rounded-card border-2 border-[#e7d6ba] bg-white px-6 py-8 text-center">
           <p className="mb-4 font-semibold text-[#6a553c]">Sign in to view and manage your trips.</p>
@@ -62,7 +100,11 @@ export default function Home(): JSX.Element {
       ) : (
         <div>
           <p className="mb-4 font-semibold text-[#6a553c]">Welcome back, {user.name}.</p>
-          {trips.length === 0 ? (
+          {tripsUnavailable ? (
+            <p className="font-semibold text-[#8a6f4c]">
+              Offline — your trips couldn&rsquo;t be loaded.
+            </p>
+          ) : trips.length === 0 ? (
             <p className="font-semibold text-[#8a6f4c]">No trips yet.</p>
           ) : (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">

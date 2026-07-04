@@ -1,5 +1,12 @@
 import type { TripDetail, TripRow, UserRow } from '@travel-plan/shared';
 
+export class NetworkError extends Error {
+  constructor() {
+    super("You appear to be offline — couldn't reach the server.");
+    this.name = 'NetworkError';
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -22,7 +29,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     init.body = JSON.stringify(body);
   }
 
-  const res = await fetch(path, init);
+  // fetch rejects only when no response arrives at all (offline, DNS,
+  // service-worker cache miss) — surface that distinctly from HTTP errors.
+  let res: Response;
+  try {
+    res = await fetch(path, init);
+  } catch {
+    throw new NetworkError();
+  }
 
   // Parse JSON when present; tolerate empty bodies (e.g. 204).
   const text = await res.text();

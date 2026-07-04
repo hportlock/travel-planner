@@ -37,14 +37,33 @@ export default defineConfig({
         ],
         runtimeCaching: [
           {
+            // Cache the session check so launching the installed PWA offline
+            // doesn't dead-end at the login screen. NetworkFirst keeps online
+            // semantics exact: the server's latest answer — including
+            // {user: null} after logout/expiry — always wins and overwrites
+            // the cache. The timeout stops a flaky connection from hanging
+            // startup: after 3s we fall back to the cached identity. Workbox
+            // still awaits the network when there is no cached entry, so
+            // fresh logins on slow links are unaffected.
+            urlPattern: ({ url }) => url.pathname === '/api/auth/me',
+            handler: 'NetworkFirst',
+            method: 'GET',
+            options: { cacheName: 'auth', networkTimeoutSeconds: 3 },
+          },
+          {
             // NetworkFirst (not StaleWhileRevalidate): owners edit these reads and
             // re-fetch right after a mutation, so they must get the fresh response
             // immediately when online. StaleWhileRevalidate served the previous
             // (stale) copy and only refreshed the cache for the *next* request,
             // making reorders/additions appear one reload late. We still fall back
             // to the cache when offline for PWA support.
+            // The exact '/api/trips' match covers the trip LIST — the
+            // startsWith('/api/trips/') check alone misses it (no trailing
+            // slash), which left the list uncached offline.
             urlPattern: ({ url }) =>
-              url.pathname.startsWith('/api/shared/') || url.pathname.startsWith('/api/trips/'),
+              url.pathname === '/api/trips' ||
+              url.pathname.startsWith('/api/trips/') ||
+              url.pathname.startsWith('/api/shared/'),
             handler: 'NetworkFirst',
             method: 'GET',
             options: { cacheName: 'trip-reads' },
