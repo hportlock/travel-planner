@@ -1,7 +1,7 @@
 # Dev/agent container for travel-plan. Environment only — the app is bind-mounted
 # at runtime (see ../dc.sh), so this image does NOT COPY the project and rebuilds
 # stay fast. For PRODUCTION see the root ./Dockerfile (Dokku).
-FROM node:22-bookworm
+FROM node:22.23.4-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates python3 make g++ sudo \

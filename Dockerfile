@@ -1,6 +1,6 @@
 # Multi-stage build of the workspaces monorepo; runs the long-lived Express server.
 # Stage 1: install all workspace deps + build shared, server, client.
-FROM node:22-bookworm-slim AS build
+FROM node:22.23.4-bookworm-slim AS build
 WORKDIR /app
 
 # Root manifests + per-workspace manifests first (better layer caching).
@@ -25,7 +25,7 @@ COPY seeds ./seeds
 RUN npm run build
 
 # Stage 2: slim runtime with prod deps + built artifacts.
-FROM node:22-bookworm-slim AS runtime
+FROM node:22.23.4-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
